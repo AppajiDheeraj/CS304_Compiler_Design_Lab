@@ -1,15 +1,14 @@
 %option noyywrap yylineno
 
 %{
-#include <iomanip>
 #include <iostream>
 #include <string>
 #include <vector>
 using namespace std;
 
 struct Entry {
-    string name, category, dataType, dimensions, parameters;
-    int lineNumber;
+    string name, category, type, dimensions, parameters;
+    int line;
 };
 
 vector<Entry> table;
@@ -18,60 +17,51 @@ string currentType;
 string trim(string text)
 {
     size_t first = text.find_first_not_of(" \t,;");
-    size_t last = text.find_last_not_of(" \t,;");
-    return first == string::npos ? "" : text.substr(first, last - first + 1);
+    if (first == string::npos) return "";
+    return text.substr(first, text.find_last_not_of(" \t,;") - first + 1);
 }
 
-void getTypeAndName(string text, char marker, string &type, string &name)
+void splitHead(string text, char marker, string &type, string &name)
 {
     string head = trim(text.substr(0, text.find(marker)));
     size_t space = head.find_last_of(" \t");
-    name = head.substr(space + 1);
     type = trim(head.substr(0, space));
-
-    string storage[] = {"auto ", "static ", "extern ", "register "};
-    for (const string &word : storage)
-        if (type.find(word) == 0) type.erase(0, word.length());
+    name = head.substr(space + 1);
 }
 
-string getDimensions(string text)
+string dimensions(string text)
 {
-    string dimensions;
-    size_t open = text.find('[');
-    while (open != string::npos) {
-        size_t close = text.find(']', open);
-        if (!dimensions.empty()) dimensions += " x ";
-        dimensions += trim(text.substr(open + 1, close - open - 1));
-        open = text.find('[', close);
+    size_t first = text.find('['), close = text.find(']', first);
+    string result = trim(text.substr(first + 1, close - first - 1));
+    size_t second = text.find('[', close);
+    if (second != string::npos) {
+        close = text.find(']', second);
+        result += " x " + trim(text.substr(second + 1, close - second - 1));
     }
-    return dimensions;
+    return result;
 }
 
-void addArray(string text, bool hasType)
+void addArray(string text, bool typed)
 {
     string name, type = currentType;
-    if (hasType) {
-        getTypeAndName(text, '[', type, name);
+    if (typed) {
+        splitHead(text, '[', type, name);
         currentType = type;
     } else {
+        if (type.empty()) return;
         name = trim(text.substr(0, text.find('[')));
     }
-    table.push_back({name, "Array", type, getDimensions(text), "-", yylineno});
+    table.push_back({name, "Array", type, dimensions(text), "-", yylineno});
 }
 
 void addFunction(string text)
 {
     string type, name;
-    getTypeAndName(text, '(', type, name);
-
+    splitHead(text, '(', type, name);
     size_t open = text.find('('), close = text.rfind(')');
-    string parameters = trim(text.substr(open + 1, close - open - 1));
-    int count = 0;
-    if (!parameters.empty() && parameters != "void") {
-        count = 1;
-        for (char ch : parameters)
-            if (ch == ',') count++;
-    }
+    string params = trim(text.substr(open + 1, close - open - 1));
+    int count = (params.empty() || params == "void") ? 0 : 1;
+    for (char ch : params) if (ch == ',') count++;
     table.push_back({name, "Function", type, "-", to_string(count), yylineno});
 }
 %}
@@ -81,12 +71,11 @@ void addFunction(string text)
 WS          [ \t]+
 OPTWS       [ \t]*
 ID          [A-Za-z_][A-Za-z0-9_]*
-STORAGE     (auto|static|extern|register)
 TYPE        (((signed|unsigned){WS})?(void|bool|char|short|int|long|float|double)|std::string|string)
-DIMENSION   \[[^]\n]*\]
-FUNCTION    ({STORAGE}{WS})?{TYPE}{WS}+{ID}{OPTWS}\([^()\n]*\)
-ARRAY       ({STORAGE}{WS})?{TYPE}{WS}+{ID}{OPTWS}{DIMENSION}({OPTWS}{DIMENSION})?
-MORE_ARRAY  ,{OPTWS}{ID}{OPTWS}{DIMENSION}({OPTWS}{DIMENSION})?
+DIM         \[[^]\n]*\]
+FUNCTION    {TYPE}{WS}+{ID}{OPTWS}\([^()\n]*\)
+ARRAY       {TYPE}{WS}+{ID}{OPTWS}{DIM}({OPTWS}{DIM})?
+MORE_ARRAY  ,{OPTWS}{ID}{OPTWS}{DIM}({OPTWS}{DIM})?
 
 %%
 
@@ -105,16 +94,10 @@ MORE_ARRAY  ,{OPTWS}{ID}{OPTWS}{DIMENSION}({OPTWS}{DIMENSION})?
 int main()
 {
     yylex();
-
-    cout << "ARRAY AND FUNCTION SYMBOL TABLE\n"
-         << left << setw(20) << "Name" << setw(14) << "Category"
-         << setw(20) << "Data/Return Type" << setw(20) << "Dimensions"
-         << setw(14) << "Parameters" << "Line No.\n"
-         << string(98, '-') << '\n';
-
+    cout << "Name\tCategory\tData/Return Type\tDimensions\tParameter Count\tLine Number\n";
     for (const Entry &entry : table)
-        cout << left << setw(20) << entry.name << setw(14) << entry.category
-             << setw(20) << entry.dataType << setw(20) << entry.dimensions
-             << setw(14) << entry.parameters << entry.lineNumber << '\n';
+        cout << entry.name << '\t' << entry.category << '\t' << entry.type
+             << '\t' << entry.dimensions << '\t' << entry.parameters
+             << '\t' << entry.line << '\n';
     return 0;
 }
