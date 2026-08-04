@@ -5,66 +5,33 @@
 #include <iostream>
 #include <string>
 #include <vector>
-
 using namespace std;
 
 struct Symbol {
-    string name;
-    string tokenType;
-    string dataType;
+    string name, tokenType, dataType, storageClass;
     int lineNumber;
-    string storageClass;
 };
 
-vector<Symbol> symbolTable;
-int keywordCount = 0;
-int identifierCount = 0;
-int integerCount = 0;
-int floatingCount = 0;
-int characterCount = 0;
-int stringCount = 0;
+vector<Symbol> table;
+int keywords = 0, identifiers = 0, integers = 0;
+int floating = 0, characters = 0, strings = 0;
+string dataType = "-", storageClass = "-";
 
-string currentDataType;
-string currentStorageClass;
-bool declarationInProgress = false;
-
-void addSymbol(const string &name, const string &tokenType,
-               const string &dataType, int lineNumber,
-               const string &storageClass)
+void addSymbol(string name, string token, string type, string storage)
 {
-    for (Symbol &symbol : symbolTable) {
-        if (symbol.name == name && symbol.tokenType == tokenType) {
-            if (symbol.dataType == "-" && dataType != "-") {
-                symbol.dataType = dataType;
-            }
-            if (symbol.storageClass == "-" && storageClass != "-") {
-                symbol.storageClass = storageClass;
-            }
+    for (Symbol &entry : table) {
+        if (entry.name == name && entry.tokenType == token) {
+            if (entry.dataType == "-" && type != "-") entry.dataType = type;
+            if (entry.storageClass == "-" && storage != "-") entry.storageClass = storage;
             return;
         }
     }
-
-    symbolTable.push_back({name, tokenType, dataType, lineNumber,
-                           storageClass});
+    table.push_back({name, token, type, storage, yylineno});
 }
 
-void printSymbolTable()
+void resetDeclaration()
 {
-    cout << "\nSYMBOL TABLE\n";
-    cout << left << setw(24) << "Name"
-         << setw(22) << "Token Type"
-         << setw(18) << "Data Type"
-         << setw(12) << "Line No."
-         << "Storage Class" << '\n';
-    cout << string(90, '-') << '\n';
-
-    for (const Symbol &symbol : symbolTable) {
-        cout << left << setw(24) << symbol.name
-             << setw(22) << symbol.tokenType
-             << setw(18) << symbol.dataType
-             << setw(12) << symbol.lineNumber
-             << symbol.storageClass << '\n';
-    }
+    dataType = storageClass = "-";
 }
 %}
 
@@ -83,77 +50,31 @@ KEYWORD     (alignas|alignof|asm|break|case|catch|class|const|constexpr|continue
 
 %%
 
-^[ \t]*#[^\n]*              {
-                                currentDataType.clear();
-                                currentStorageClass.clear();
-                                declarationInProgress = false;
-                            }
-"//"[^\n]*                  { /* Ignore a single-line comment. */ }
-"/*"                        { BEGIN(COMMENT); }
-<COMMENT>"*/"               { BEGIN(INITIAL); }
-<COMMENT>\n                 { /* yylineno is updated automatically. */ }
-<COMMENT>.                  { }
+^[ \t]*#[^\n]*             { resetDeclaration(); }
+"//"[^\n]*                 { }
+"/*"                       { BEGIN(COMMENT); }
+<COMMENT>"*/"              { BEGIN(INITIAL); }
+<COMMENT>\n|<COMMENT>.      { }
 
-{STRING}                    {
-                                stringCount++;
-                                addSymbol(yytext, "String Literal", "char[]",
-                                          yylineno, "-");
-                            }
-{CHARACTER}                 {
-                                characterCount++;
-                                addSymbol(yytext, "Character Constant", "char",
-                                          yylineno, "-");
-                            }
+{STRING}                    { strings++; addSymbol(yytext, "String Literal", "char[]", "-"); }
+{CHARACTER}                 { characters++; addSymbol(yytext, "Character Constant", "char", "-"); }
 {FLOAT}                     {
-                                floatingCount++;
-                                addSymbol(yytext, "Floating Constant", "double",
-                                          yylineno, "-");
+                                floating++;
+                                string type = (yytext[yyleng - 1] == 'f' || yytext[yyleng - 1] == 'F') ? "float" : "double";
+                                addSymbol(yytext, "Floating Constant", type, "-");
                             }
-{INTEGER}                   {
-                                integerCount++;
-                                addSymbol(yytext, "Integer Constant", "int",
-                                          yylineno, "-");
-                            }
-{STORAGE}                   {
-                                keywordCount++;
-                                currentStorageClass = yytext;
-                                declarationInProgress = true;
-                            }
+{INTEGER}                   { integers++; addSymbol(yytext, "Integer Constant", "int", "-"); }
+{STORAGE}                   { keywords++; storageClass = yytext; }
+signed|unsigned             { keywords++; dataType = yytext; }
 {TYPE}                      {
-                                keywordCount++;
-                                if (currentDataType.empty()) {
-                                    currentDataType = yytext;
-                                } else {
-                                    currentDataType += " ";
-                                    currentDataType += yytext;
-                                }
-                                declarationInProgress = true;
+                                keywords++;
+                                if (dataType == "signed" || dataType == "unsigned") dataType += " " + string(yytext);
+                                else dataType = yytext;
                             }
-signed|unsigned             {
-                                keywordCount++;
-                                currentDataType = yytext;
-                                declarationInProgress = true;
-                            }
-{KEYWORD}                   { keywordCount++; }
-{ID}                        {
-                                identifierCount++;
-                                addSymbol(yytext, "Identifier",
-                                          declarationInProgress ? currentDataType : "-",
-                                          yylineno,
-                                          declarationInProgress && !currentStorageClass.empty()
-                                              ? currentStorageClass : "-");
-                            }
-;                           {
-                                currentDataType.clear();
-                                currentStorageClass.clear();
-                                declarationInProgress = false;
-                            }
-\{                          {
-                                currentDataType.clear();
-                                currentStorageClass.clear();
-                                declarationInProgress = false;
-                            }
-[ \t\r\n]+                 { }
+{KEYWORD}                   { keywords++; }
+{ID}                        { identifiers++; addSymbol(yytext, "Identifier", dataType, storageClass); }
+;|\{                        { resetDeclaration(); }
+[ \t\r\n]+                { }
 .                           { }
 
 %%
@@ -162,14 +83,21 @@ int main()
 {
     yylex();
 
-    cout << "TOKEN COUNTS\n";
-    cout << "Keywords             : " << keywordCount << '\n';
-    cout << "Identifiers          : " << identifierCount << '\n';
-    cout << "Integer constants    : " << integerCount << '\n';
-    cout << "Floating constants   : " << floatingCount << '\n';
-    cout << "Character constants  : " << characterCount << '\n';
-    cout << "String literals      : " << stringCount << '\n';
+    cout << "TOKEN COUNTS\n"
+         << "Keywords             : " << keywords << '\n'
+         << "Identifiers          : " << identifiers << '\n'
+         << "Integer constants    : " << integers << '\n'
+         << "Floating constants   : " << floating << '\n'
+         << "Character constants  : " << characters << '\n'
+         << "String literals      : " << strings << "\n\n"
+         << "SYMBOL TABLE\n"
+         << left << setw(24) << "Name" << setw(22) << "Token Type"
+         << setw(18) << "Data Type" << setw(12) << "Line No." << "Storage Class\n"
+         << string(90, '-') << '\n';
 
-    printSymbolTable();
+    for (const Symbol &entry : table)
+        cout << left << setw(24) << entry.name << setw(22) << entry.tokenType
+             << setw(18) << entry.dataType << setw(12) << entry.lineNumber
+             << entry.storageClass << '\n';
     return 0;
 }
