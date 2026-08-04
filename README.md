@@ -1,22 +1,23 @@
 # CS304 Compiler Design Lab
 
-Lab 01 contains four Flex/Lex programs written with C++ actions, test cases,
-and build commands.
+This repository contains Flex/Lex programs written with C++ actions, test cases,
+and build commands for the CS304 Compiler Design Lab.
+
+## Labs
+
+- [Lab 01](Lab_01/README.md): token counting and classification, comment
+  removal, and C++ identifier validation.
+- [Lab 02](Lab_02/README.md): lexical analysis with a detailed symbol table,
+  plus array and function declaration analysis.
+
+Each program reads input using standard input redirection:
 
 ```bash
-cd Lab_01
-```
-
-All sample inputs are inside `Lab_01/test_cases/`. Each program reads input
-using standard input redirection:
-
-```bash
+cd Lab_01 # or Lab_02
 flex filename.l
 g++ lex.yy.c -o program_name
 ./program_name < test_cases/input_file
 ```
-
-See [Lab 01 instructions and execution guide](Lab_01/README.md).
 
 ## 📚 Theory & Viva Cheatsheet
 
