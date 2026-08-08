@@ -1,0 +1,7 @@
+arithmetic
+string_recognizer
+arithmetic.tab.c
+arithmetic.tab.h
+string_recognizer.tab.c
+string_recognizer.tab.h
+lex.yy.c
