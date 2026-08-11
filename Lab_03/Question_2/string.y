@@ -8,7 +8,7 @@ void yyerror(const char *message);
 %%
 
 input:
-      S '\n' { printf("Valid String\n"); }
+    S '\n' { printf("Valid String\n"); }
     ;
 
 S:

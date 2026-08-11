@@ -3,20 +3,21 @@
 
 int yylex(void);
 void yyerror(const char *message);
-extern int error_kind, last_token;
+extern int error_type;
+extern char last_char;
 %}
 
-%union { double value; }
-%token <value> NUMBER
+%union { double number; }
+%token <number> NUMBER
 %token BAD_OPERATOR INVALID
-%type <value> expression
+%type <number> expression
 %left '+' '-'
 %left '*' '/'
 
 %%
 
 input:
-      expression '\n' { printf("Result = %g\n", $1); }
+    expression '\n' { printf("Result = %g\n", $1); }
     ;
 
 expression:
@@ -26,7 +27,7 @@ expression:
     | expression '*' expression { $$ = $1 * $3; }
     | expression '/' expression
         {
-            if ($3 == 0) { error_kind = 3; YYERROR; }
+            if ($3 == 0) { printf("Math Error: Division by zero\n"); YYABORT; }
             $$ = $1 / $3;
         }
     | '(' expression ')' { $$ = $2; }
@@ -37,13 +38,12 @@ expression:
 void yyerror(const char *message)
 {
     (void)message;
-    if (error_kind == 1)
-        printf("Lexical Error: Invalid symbol '%c'\n", last_token);
-    else if (error_kind == 2)
+
+    if (error_type == 1)
+        printf("Lexical Error: Invalid symbol '%c'\n", last_char);
+    else if (error_type == 2)
         printf("Syntax Error: Invalid operator sequence\n");
-    else if (error_kind == 3)
-        printf("Math Error: Division by zero\n");
-    else if (last_token == '+' || last_token == '-' || last_token == '*' || last_token == '/')
+    else if (last_char == '+' || last_char == '-' || last_char == '*' || last_char == '/')
         printf("Syntax Error: Incomplete expression\n");
     else
         printf("Syntax Error: Invalid expression\n");
