@@ -9,6 +9,10 @@ and build commands for the CS304 Compiler Design Lab.
   removal, and C++ identifier validation.
 - [Lab 02](Lab_02/README.md): lexical analysis with a detailed symbol table,
   plus array and function declaration analysis.
+- [Lab 03](Lab_03/README.md): arithmetic evaluation and string recognition
+  using Flex and Bison.
+- [Lab 04](Lab_04/README.md): Week 5 string recognition using the given YACC
+  grammars.
 
 Each program reads input using standard input redirection:
 
