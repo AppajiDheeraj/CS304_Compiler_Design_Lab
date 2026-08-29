@@ -1,3 +1,5 @@
+%option noyywrap
+
 %{
 #include "question_2.tab.h"
 %}
@@ -12,10 +14,3 @@
 [=+\-*/;(){}]           return yytext[0];
 [ \t\r\n]+              ;
 .                       return yytext[0];
-
-%%
-
-int yywrap(void)
-{
-    return 1;
-}

@@ -1,7 +1,8 @@
 %{
-#include <stdio.h>
+#include <iostream>
+using namespace std;
 
-int yylex(void);
+int yylex();
 void yyerror(const char *message);
 %}
 
@@ -14,7 +15,7 @@ void yyerror(const char *message);
 %%
 
 program:
-    statement { puts("Valid Statement"); }
+    statement { cout << "Valid Statement" << endl; }
     ;
 
 statement:
@@ -62,10 +63,11 @@ expression:
 void yyerror(const char *message)
 {
     (void)message;
-    puts("Syntax error: invalid if-else statement (check condition, parentheses, and semicolons).");
+    cout << "Syntax error: invalid if-else statement "
+         << "(check condition, parentheses, and semicolons)." << endl;
 }
 
-int main(void)
+int main()
 {
     return yyparse();
 }

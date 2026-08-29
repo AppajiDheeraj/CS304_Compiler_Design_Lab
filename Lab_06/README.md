@@ -8,7 +8,7 @@ question.
 ```bash
 bison -d question_1.y
 flex question_1.l
-cc question_1.tab.c lex.yy.c -o question_1
+g++ -x c++ question_1.tab.c lex.yy.c -o question_1
 printf 'if (a > b) x = 10; else x = 20;\n' | ./question_1
 ```
 
@@ -21,7 +21,7 @@ unmatched `if`, as C does.
 ```bash
 bison -d question_2.y
 flex question_2.l
-cc question_2.tab.c lex.yy.c -o question_2
+g++ -x c++ question_2.tab.c lex.yy.c -o question_2
 printf 'while (i < 10) i = i + 1;\n' | ./question_2
 ```
 
