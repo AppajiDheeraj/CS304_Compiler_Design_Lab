@@ -11,6 +11,8 @@ and build commands for the CS304 Compiler Design Lab.
   plus array and function declaration analysis.
 - [Lab 05](Lab_05/README.md): Week 5 string recognition using the given YACC
   grammars.
+- [Lab 06](Lab_06/README.md): Week 6 conditional and iterative statement
+  validation using YACC.
 
 Each program reads input using standard input redirection:
 
