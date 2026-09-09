@@ -13,6 +13,8 @@ and build commands for the CS304 Compiler Design Lab.
   grammars.
 - [Lab 06](Lab_06/README.md): Week 6 conditional and iterative statement
   validation using YACC.
+- [Lab 07](Lab_07/README.md): Week 7 loop and function parsing with required
+  lexical and syntax error detection.
 
 Each program reads input using standard input redirection:
 
