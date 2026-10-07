@@ -15,6 +15,8 @@ and build commands for the CS304 Compiler Design Lab.
   validation using YACC.
 - [Lab 07](Lab_07/README.md): Week 7 loop and function parsing with required
   lexical and syntax error detection.
+- [Lab 08](Lab_08/README.md): Week 8 left recursion and left factoring removal
+  from context-free grammars.
 
 Each program reads input using standard input redirection:
 
